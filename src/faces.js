@@ -66,13 +66,17 @@ export class FaceRegistry {
   }
 
   async load() {
-    const res = await fetch('/faces/manifest.json');
+    const base = (import.meta.env && import.meta.env.BASE_URL) || './';
+    const facesURL = (file) => `${base}faces/${file}`;
+    this._facesURL = facesURL;
+
+    const res = await fetch(facesURL('manifest.json'));
     this.manifest = await res.json();
     this.coinUnlockThreshold = this.manifest.coinUnlockThreshold ?? 8;
 
     for (const f of this.manifest.faces) {
       const tex = f.file
-        ? await PIXI.Assets.load(`/faces/${f.file}`)
+        ? await PIXI.Assets.load(facesURL(f.file))
         : makePlaceholderTexture(f.placeholder);
       const entry = { ...f, texture: tex };
       this.faces.push(entry);
@@ -141,7 +145,7 @@ export class FaceRegistry {
         ctx.imageSmoothingEnabled = false;
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
       };
-      img.src = `/faces/${face.file}`;
+      img.src = this._facesURL ? this._facesURL(face.file) : `./faces/${face.file}`;
       // Show a placeholder until the image loads.
       ctx.fillStyle = '#1a1a3a';
       ctx.fillRect(0, 0, canvas.width, canvas.height);

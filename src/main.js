@@ -72,7 +72,8 @@ function renderCharacterGrid() {
         ctx.fillStyle = '#1a1a3a'; ctx.fillRect(0, 0, 64, 64);
         const img = new Image();
         img.onload = () => { ctx.imageSmoothingEnabled = false; ctx.drawImage(img, 0, 0, 64, 64); };
-        img.src = `/faces/${face.file}`;
+        const base = (import.meta.env && import.meta.env.BASE_URL) || './';
+        img.src = `${base}faces/${face.file}`;
       } else {
         ctx.fillStyle = '#888'; ctx.fillRect(0, 0, 64, 64);
       }
