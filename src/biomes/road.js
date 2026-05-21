@@ -1,6 +1,61 @@
-import { Mesh3D, Container3D } from 'pixi3d/pixi7';
+import * as PIXI from 'pixi.js';
+import { Mesh3D, Container3D, StandardMaterial, Color } from 'pixi3d/pixi7';
 import { TILE, PALETTE, HALF_WIDTH } from '../scene.js';
 import { cachedMat } from './grass.js';
+
+const FLAG_CHANCE = 0.18;
+const FLAG_W = 768;
+const FLAG_H = 256;
+const FLAG_BORDER = 14;
+
+function paintFlag(ctx, mirror) {
+  ctx.save();
+  if (mirror) {
+    ctx.translate(FLAG_W, 0);
+    ctx.scale(-1, 1);
+  }
+  // Yellow background
+  ctx.fillStyle = '#ffe44a';
+  ctx.fillRect(0, 0, FLAG_W, FLAG_H);
+  // Dark border
+  ctx.fillStyle = '#3a2510';
+  ctx.fillRect(0, 0, FLAG_W, FLAG_BORDER);
+  ctx.fillRect(0, FLAG_H - FLAG_BORDER, FLAG_W, FLAG_BORDER);
+  ctx.fillRect(0, 0, FLAG_BORDER, FLAG_H);
+  ctx.fillRect(FLAG_W - FLAG_BORDER, 0, FLAG_BORDER, FLAG_H);
+  // Two lines of big bold text so it's readable from a few rows away.
+  ctx.fillStyle = '#3a2510';
+  ctx.font = 'bold 80px "Courier New", monospace';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('Victor Code',  FLAG_W / 2, 84);
+  ctx.fillText('is NOT easy',  FLAG_W / 2, 180);
+  ctx.restore();
+}
+
+function makeFlagTexture(mirror) {
+  const c = document.createElement('canvas');
+  c.width = FLAG_W;
+  c.height = FLAG_H;
+  const ctx = c.getContext('2d');
+  paintFlag(ctx, mirror);
+  return PIXI.Texture.from(c);
+}
+
+const FLAG_TEXTURE = makeFlagTexture(false);
+const FLAG_TEXTURE_MIRRORED = makeFlagTexture(true);
+
+function flagMaterial(texture) {
+  const m = new StandardMaterial();
+  m.baseColor = new Color(1, 1, 1);
+  m.unlit = true;
+  m.doubleSided = true;
+  m.baseColorTexture = texture;
+  return m;
+}
+
+const FLAG_MAT_FRONT = flagMaterial(FLAG_TEXTURE);
+const FLAG_MAT_BACK  = flagMaterial(FLAG_TEXTURE_MIRRORED);
 
 const CAR_COLORS = ['#cc3344', '#3377cc', '#dd8822', '#22aa55', '#aa44cc', '#cc55aa'];
 const CAR_HALF_LEN = 0.42;
@@ -11,7 +66,7 @@ const CAR_WRAP = HALF_WIDTH + 1.8;
 const PLAYER_HALF_WIDTH = 0.30;
 
 class Car {
-  constructor(parent, speed, direction, color) {
+  constructor(parent, speed, direction, color, withFlag = false) {
     this.speed = speed;             // world units / second
     this.direction = direction;     // +1 or -1
     this.position = 0;              // world-x position
@@ -51,8 +106,42 @@ class Car {
       this.container.addChild(light);
     }
 
+    if (withFlag) this._addFlag();
+
     parent.addChild(this.container);
     this._sync();
+  }
+
+  _addFlag() {
+    // Vertical pole rising from the roof — taller so the flag clears traffic.
+    const pole = Mesh3D.createCube();
+    pole.material = cachedMat('#1a1a1a');
+    pole.scale.set(0.03, 0.42, 0.03);
+    pole.position.set(0, 0.95, 0);
+    this.container.addChild(pole);
+
+    // Big rectangular billboard. Two back-to-back planes — one with the
+    // regular texture (for viewers ahead of the car), one with a
+    // horizontally-mirrored texture (for the chase camera behind), so the
+    // text reads correctly from both sides regardless of how pixi3d's
+    // doubleSided shader treats back faces.
+    const FLAG_HALF_W = 1.0;   // world units, half-width
+    const FLAG_HALF_H = 0.30;  // world units, half-height
+    const Y = 1.55;
+
+    const sign1 = Mesh3D.createPlane();
+    sign1.material = FLAG_MAT_FRONT;
+    sign1.scale.set(FLAG_HALF_W, 1, FLAG_HALF_H);
+    sign1.position.set(0, Y, 0.02);
+    sign1.rotationQuaternion.setEulerAngles(90, 0, 0);
+    this.container.addChild(sign1);
+
+    const sign2 = Mesh3D.createPlane();
+    sign2.material = FLAG_MAT_BACK;
+    sign2.scale.set(FLAG_HALF_W, 1, FLAG_HALF_H);
+    sign2.position.set(0, Y, -0.02);
+    sign2.rotationQuaternion.setEulerAngles(90, 0, 0);
+    this.container.addChild(sign2);
   }
 
   setPosition(x) {
@@ -114,9 +203,11 @@ export class RoadRow {
     const numCars = 1 + densityBoost + Math.floor(rand() * 3);
     this.cars = [];
     const span = 2 * CAR_WRAP;
+    // Ensure at most ONE flag car per row so the tagline doesn't get spammy.
+    const flagIndex = rand() < FLAG_CHANCE ? Math.floor(rand() * numCars) : -1;
     for (let i = 0; i < numCars; i++) {
       const color = CAR_COLORS[Math.floor(rand() * CAR_COLORS.length)];
-      const car = new Car(this.container, speed, direction, color);
+      const car = new Car(this.container, speed, direction, color, i === flagIndex);
       // distribute initial positions evenly so they don't all overlap
       const startX = -CAR_WRAP + (i + rand() * 0.5) * (span / numCars);
       car.setPosition(startX);

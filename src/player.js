@@ -5,7 +5,7 @@ import {
   Container3D,
 } from 'pixi3d/pixi7';
 
-import { TILE, flatMaterial } from './scene.js';
+import { TILE, flatMaterial, makeBlobShadow } from './scene.js';
 
 const HOP_DURATION_MS = 240;
 const HOP_HEIGHT = 0.55;
@@ -29,6 +29,15 @@ export class Player {
     this._hopT = 0;
     this._from = null;
     this._to = null;
+
+    // Blob shadow lives in the scene (not parented to the player) so it stays
+    // on the ground while the player arcs through a hop.
+    this.shadow = makeBlobShadow(0.55, 0.55);
+    scene.root.addChild(this.shadow);
+
+    // Squash animation state — set by squash() on death.
+    this._squashT = 0;
+    this._squashing = false;
 
     // callback (newRow) => void when player lands on a row further ahead
     this.onAdvance = null;
@@ -99,6 +108,33 @@ export class Player {
     this.col = col;
     this.row = row;
     this.container.position.set(col * TILE, 0, row * TILE);
+    this._syncShadow();
+  }
+
+  _syncShadow() {
+    if (!this.shadow) return;
+    // Shadow tracks the player on X/Z but stays glued to the ground in Y, so
+    // it doesn't lift with the hop arc. Shrinks slightly when hopping higher.
+    const px = this.container.position.x;
+    const pz = this.container.position.z;
+    const py = this.container.position.y;
+    this.shadow.position.x = px;
+    this.shadow.position.z = pz;
+    const lift = Math.min(1, py / 0.55);
+    const s = 0.28 * (1 - lift * 0.45);
+    this.shadow.scale.set(s, 1, s);
+  }
+
+  squash() {
+    this._squashing = true;
+    this._squashT = 0;
+  }
+
+  resetTransform() {
+    this._squashing = false;
+    this._squashT = 0;
+    this.container.scale.set(1, 1, 1);
+    this.shadow.visible = true;
   }
 
   setFaceTexture(texture) {
@@ -128,7 +164,22 @@ export class Player {
   }
 
   update(deltaMS) {
-    if (!this.hopping) return;
+    if (this._squashing) {
+      this._squashT += deltaMS;
+      const t = Math.min(1, this._squashT / 280);
+      // Quick splat: scale X+Z up, Y down.
+      const yScale = 1 - 0.75 * t;
+      const xzScale = 1 + 0.4 * t;
+      this.container.scale.set(xzScale, yScale, xzScale);
+      this.container.position.y = 0;
+      if (this.shadow) this.shadow.visible = false; // shadow looks weird under a pancake
+      this._syncShadow();
+      return;
+    }
+    if (!this.hopping) {
+      this._syncShadow();
+      return;
+    }
     this._hopT += deltaMS / HOP_DURATION_MS;
     if (this._hopT >= 1) {
       this._snapTo(this._to.col, this._to.row);
@@ -145,5 +196,6 @@ export class Player {
     const z = this._from.row + (this._to.row - this._from.row) * t;
     const y = Math.sin(t * Math.PI) * HOP_HEIGHT;
     this.container.position.set(x * TILE, y, z * TILE);
+    this._syncShadow();
   }
 }

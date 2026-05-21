@@ -6,6 +6,7 @@ import { Input } from './input.js';
 import { World } from './world.js';
 import { FaceRegistry } from './faces.js';
 import { Audio } from './audio.js';
+import { Effects } from './effects.js';
 
 export class Game {
   constructor(canvas) {
@@ -22,6 +23,7 @@ export class Game {
     this.world = new World(this.scene, this.faces);
     this.player = new Player(this.scene);
     this.audio = new Audio();
+    this.effects = new Effects(this.scene);
 
     this.scene.follow(this.player);
 
@@ -37,9 +39,15 @@ export class Game {
       if (this.player.tryHop(dx, dz)) this.audio.hop();
     });
 
-    this.player.onLand = () => { /* hop sfx is on tryHop; landing kept as a hook */ };
+    this.player.onLand = () => {
+      // Puff a little dust where the player just touched down.
+      const p = this.player.container.position;
+      this.effects.dust({ x: p.x, y: 0.05, z: p.z });
+    };
     this.world.onCoin = (faceId, justUnlocked) => {
       this.audio.coin();
+      const p = this.player.container.position;
+      this.effects.sparkle({ x: p.x, y: 0.55, z: p.z });
       if (justUnlocked) {
         this.audio.unlock();
         const el = document.getElementById('coins');
@@ -78,6 +86,7 @@ export class Game {
     this.world.reset();
     this.scene.root.addChild(this.player.container);
     this.player._snapTo(0, 0);
+    this.player.resetTransform();
     this.applyCurrentFace();
     this.input.enable();
     this.audio.ensureContext();
@@ -90,6 +99,15 @@ export class Game {
     this.input.disable();
     this.audio.death();
     this.audio.stopMusic();
+    // Visceral feedback: shake the camera, splat the player, puff some dust.
+    this.effects.shakeCamera(0.45, 380);
+    this.player.squash();
+    const p = this.player.container.position;
+    if (/drown|river|swept/i.test(cause)) {
+      this.effects.splash({ x: p.x, y: -0.05, z: p.z });
+    } else {
+      this.effects.dust({ x: p.x, y: 0.1, z: p.z });
+    }
     const isNewBest = this.world.finalize();
     this.totalRuns += 1;
     localStorage.setItem('cp-retro.totalRuns', String(this.totalRuns));
@@ -118,8 +136,12 @@ export class Game {
       this.player.update(deltaMS);
       this.world.update(deltaMS, this.player);
       this._tickIdle(deltaMS);
+    } else if (this.state === 'gameOver') {
+      // Keep the squash animation going briefly after death.
+      this.player.update(deltaMS);
     }
-    this.scene.update(deltaMS);
+    this.effects.update(deltaMS);
+    this.scene.update(deltaMS, this.effects.cameraShakeOffset());
   }
 
   _tickIdle(deltaMS) {
