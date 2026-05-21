@@ -5,7 +5,8 @@ const STORAGE_SELECTED = 'cp-retro.face.selected';
 const STORAGE_UNLOCKED = 'cp-retro.face.unlocked';
 const STORAGE_COIN_COUNTS = 'cp-retro.face.coins';
 
-// Draws a small cartoon face onto a canvas — used when no real PNG is supplied.
+// Draws a cartoon face onto a canvas. Recognises optional features so the
+// 12 colleagues can be made visually distinct without needing real photos.
 function drawPlaceholderFace(ctx, p) {
   const W = FACE_TEX_SIZE;
   const H = FACE_TEX_SIZE;
@@ -13,35 +14,77 @@ function drawPlaceholderFace(ctx, p) {
   const hair = p.hair || '#5a3a22';
   const eyes = p.eyes || '#222222';
   const mouth = p.mouth || '#aa3344';
+  const beard = p.beard;                  // hex string or undefined
+  const glasses = p.glasses;              // hex string or undefined
+  const hairStyle = p.hairStyle || 'short'; // 'short' | 'long' | 'fluffy' | 'bald' | 'mohawk'
+
+  const px = (frac) => Math.floor(W * frac);
+  const py = (frac) => Math.floor(H * frac);
 
   // Skin background
   ctx.fillStyle = skin;
   ctx.fillRect(0, 0, W, H);
 
-  // Hair (top band + slight fringe)
-  ctx.fillStyle = hair;
-  ctx.fillRect(0, 0, W, Math.floor(H * 0.30));
-  ctx.fillRect(0, Math.floor(H * 0.30), Math.floor(W * 0.18), Math.floor(H * 0.08));
-  ctx.fillRect(Math.floor(W * 0.82), Math.floor(H * 0.30), Math.floor(W * 0.18), Math.floor(H * 0.08));
+  // Hair
+  if (hairStyle !== 'bald') {
+    ctx.fillStyle = hair;
+    if (hairStyle === 'mohawk') {
+      ctx.fillRect(px(0.42), 0, px(0.16), py(0.32));
+    } else if (hairStyle === 'fluffy') {
+      ctx.fillRect(0, 0, W, py(0.36));
+      ctx.fillRect(0, py(0.36), px(0.14), py(0.10));
+      ctx.fillRect(px(0.86), py(0.36), px(0.14), py(0.10));
+    } else if (hairStyle === 'long') {
+      ctx.fillRect(0, 0, W, py(0.34));
+      ctx.fillRect(0, py(0.34), px(0.12), py(0.40));
+      ctx.fillRect(px(0.88), py(0.34), px(0.12), py(0.40));
+    } else { // short
+      ctx.fillRect(0, 0, W, py(0.28));
+      ctx.fillRect(0, py(0.28), px(0.15), py(0.08));
+      ctx.fillRect(px(0.85), py(0.28), px(0.15), py(0.08));
+    }
+  }
 
-  // Eyes (square pixel-art)
-  const eyeW = Math.floor(W * 0.14);
-  const eyeH = Math.floor(H * 0.12);
-  const eyeY = Math.floor(H * 0.45);
+  // Eyes
+  const eyeW = px(0.14), eyeH = py(0.11);
+  const eyeY = py(0.46);
   ctx.fillStyle = '#ffffff';
-  ctx.fillRect(Math.floor(W * 0.22), eyeY, eyeW, eyeH);
-  ctx.fillRect(Math.floor(W * 0.64), eyeY, eyeW, eyeH);
+  ctx.fillRect(px(0.22), eyeY, eyeW, eyeH);
+  ctx.fillRect(px(0.64), eyeY, eyeW, eyeH);
   ctx.fillStyle = eyes;
-  ctx.fillRect(Math.floor(W * 0.26), eyeY + 2, eyeW - 6, eyeH - 4);
-  ctx.fillRect(Math.floor(W * 0.68), eyeY + 2, eyeW - 6, eyeH - 4);
+  ctx.fillRect(px(0.26), eyeY + 2, eyeW - 6, eyeH - 4);
+  ctx.fillRect(px(0.68), eyeY + 2, eyeW - 6, eyeH - 4);
 
-  // Nose
-  ctx.fillStyle = `rgba(0,0,0,0.18)`;
-  ctx.fillRect(Math.floor(W * 0.47), Math.floor(H * 0.60), Math.floor(W * 0.06), Math.floor(H * 0.10));
+  // Glasses (optional)
+  if (glasses) {
+    ctx.strokeStyle = glasses;
+    ctx.lineWidth = 3;
+    ctx.strokeRect(px(0.20), eyeY - 3, eyeW + 6, eyeH + 6);
+    ctx.strokeRect(px(0.62), eyeY - 3, eyeW + 6, eyeH + 6);
+    ctx.beginPath();
+    ctx.moveTo(px(0.36), eyeY + eyeH / 2);
+    ctx.lineTo(px(0.62), eyeY + eyeH / 2);
+    ctx.stroke();
+  }
 
-  // Mouth (smile)
+  // Nose shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.18)';
+  ctx.fillRect(px(0.47), py(0.60), px(0.06), py(0.10));
+
+  // Mouth
   ctx.fillStyle = mouth;
-  ctx.fillRect(Math.floor(W * 0.32), Math.floor(H * 0.78), Math.floor(W * 0.36), Math.floor(H * 0.06));
+  ctx.fillRect(px(0.32), py(0.78), px(0.36), py(0.06));
+
+  // Beard (drawn after mouth so it can frame it; redraws mouth on top)
+  if (beard) {
+    ctx.fillStyle = beard;
+    ctx.fillRect(px(0.18), py(0.72), px(0.64), py(0.22));
+    // Cut a "skin" gap for the mouth area, then redraw the mouth.
+    ctx.fillStyle = skin;
+    ctx.fillRect(px(0.30), py(0.76), px(0.40), py(0.04));
+    ctx.fillStyle = mouth;
+    ctx.fillRect(px(0.32), py(0.78), px(0.36), py(0.06));
+  }
 }
 
 function makePlaceholderTexture(placeholder) {
