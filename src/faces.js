@@ -115,6 +115,48 @@ export class FaceRegistry {
     return this.coinCounts.get(id) || 0;
   }
 
+  // Lifetime sum of every coin ever collected (across all colleagues).
+  totalCoins() {
+    let n = 0;
+    for (const v of this.coinCounts.values()) n += v;
+    return n;
+  }
+
+  // Helper for the home-screen portrait: returns an HTMLImageElement (loading
+  // a fresh one from disk for file-backed faces, or a cloned canvas for
+  // procedural placeholders).
+  drawIntoCanvas(face, canvas) {
+    const ctx = canvas.getContext('2d');
+    ctx.imageSmoothingEnabled = false;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    if (!face) {
+      ctx.fillStyle = '#1a1a3a';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      return;
+    }
+    if (face.file) {
+      // File-backed: load the original via a fresh <img> to avoid CORS/canvas issues.
+      const img = new Image();
+      img.onload = () => {
+        ctx.imageSmoothingEnabled = false;
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      };
+      img.src = `/faces/${face.file}`;
+      // Show a placeholder until the image loads.
+      ctx.fillStyle = '#1a1a3a';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      return;
+    }
+    // Procedural placeholder: source is the canvas baked in faces.js — copy it.
+    const src = face.texture?.baseTexture?.resource?.source;
+    if (src instanceof HTMLCanvasElement) {
+      ctx.drawImage(src, 0, 0, canvas.width, canvas.height);
+    } else {
+      ctx.fillStyle = '#888';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+  }
+
   // Returns true if this collect just unlocked the face.
   collectCoin(id) {
     const count = (this.coinCounts.get(id) || 0) + 1;

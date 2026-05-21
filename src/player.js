@@ -54,19 +54,35 @@ export class Player {
     this.container.addChild(head);
     this.head = head;
 
-    // Face plane on front of head — textured with a person's face PNG (or placeholder).
-    // pixi3d's Mesh3D.createPlane() lies on XZ; rotate to face +Z so the texture
-    // is visible from in front of the character (camera in character-select).
-    const face = Mesh3D.createPlane();
+    // Face planes textured with a person's face. The chase camera sits BEHIND
+    // the player so the back-of-head plane is the one the player actually sees
+    // while running; the front-of-head plane is there so the character looks
+    // right from any angle (e.g. if we ever add a front-cam preview). Both
+    // planes share one material so the texture swap propagates automatically.
     const faceMat = new StandardMaterial();
     faceMat.baseColor = new Color(1, 1, 1);   // white so texture passes through unmultiplied
     faceMat.unlit = true;
-    face.material = faceMat;
-    face.scale.set(0.27, 1, 0.27);
-    face.position.set(0, 0.85, 0.291);
-    face.rotationQuaternion.setEulerAngles(-90, 0, 0);
-    this.container.addChild(face);
-    this.facePlane = face;
+    faceMat.doubleSided = true;
+
+    // Face planes — pixi3d's createPlane() puts UV V=0 at the +Z edge in local
+    // space, so rotating X=+90 (which lifts the +Z edge to the top) keeps the
+    // texture right-side-up. doubleSided makes the back of each plane visible
+    // too, so the camera (behind player) sees the back-of-head plane fine.
+    const back = Mesh3D.createPlane();
+    back.material = faceMat;
+    back.scale.set(0.27, 1, 0.27);
+    back.position.set(0, 0.85, -0.291);
+    back.rotationQuaternion.setEulerAngles(90, 0, 0);
+    this.container.addChild(back);
+
+    const front = Mesh3D.createPlane();
+    front.material = faceMat;
+    front.scale.set(0.27, 1, 0.27);
+    front.position.set(0, 0.85, 0.291);
+    front.rotationQuaternion.setEulerAngles(90, 0, 0);
+    this.container.addChild(front);
+
+    this.facePlane = front;        // kept for legacy refs
     this.faceMaterial = faceMat;
 
     // Legs (two small cubes)

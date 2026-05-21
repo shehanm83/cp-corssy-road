@@ -54,6 +54,7 @@ export class Game {
     this.state = 'menu';
     this._idleMS = 0;          // ms since last forward advance
     this._idleEagleSpawn = null; // animation state for the eagle dive
+    this.totalRuns = Number(localStorage.getItem('cp-retro.totalRuns') || 0);
     this.app.ticker.add(this._tick, this);
   }
 
@@ -90,10 +91,20 @@ export class Game {
     this.audio.death();
     this.audio.stopMusic();
     const isNewBest = this.world.finalize();
+    this.totalRuns += 1;
+    localStorage.setItem('cp-retro.totalRuns', String(this.totalRuns));
+
     document.getElementById('hud').classList.add('hidden');
     document.getElementById('death-cause').textContent = cause;
-    const finalScoreEl = document.getElementById('final-score');
-    finalScoreEl.textContent = String(this.world.score);
+    document.getElementById('final-score').textContent = String(this.world.score);
+    const bestEl = document.getElementById('gameover-best');
+    if (bestEl) bestEl.textContent = String(this.world.bestScore);
+    const nameEl = document.getElementById('gameover-name');
+    const f = this.faces.current();
+    if (nameEl) nameEl.textContent = f?.name || '—';
+    const portrait = document.getElementById('gameover-portrait');
+    if (portrait) this.faces.drawIntoCanvas(f, portrait);
+
     const overlay = document.getElementById('gameover-overlay');
     overlay.classList.toggle('newbest', isNewBest);
     const newBestEl = document.getElementById('new-best');

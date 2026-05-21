@@ -6,13 +6,54 @@ import { RiverRow } from './biomes/river.js';
 const ROWS_AHEAD = 25;
 const ROWS_BEHIND = 6;
 
-// Biome weights for the row picker.
-const BIOME_WEIGHTS = [
-  { type: 'grass',  weight: 28, minRun: 1, maxRun: 3 },
-  { type: 'road',   weight: 30, minRun: 1, maxRun: 4 },
-  { type: 'tracks', weight: 12, minRun: 1, maxRun: 2 },
-  { type: 'river',  weight: 25, minRun: 1, maxRun: 5 },
+// Difficulty tiers — keyed by the row's depth (== score the player will have
+// when they reach it). Earlier rows use safer biome mixes with shorter runs;
+// later rows open up river/track chaos. The first tier is intentionally
+// grass+road only so the player can get into the rhythm before drowning.
+const BIOME_TIERS = [
+  {
+    minDepth: 0,
+    weights: [
+      { type: 'grass', weight: 55, minRun: 1, maxRun: 3 },
+      { type: 'road',  weight: 45, minRun: 1, maxRun: 2 },
+    ],
+  },
+  {
+    minDepth: 15,
+    weights: [
+      { type: 'grass',  weight: 40, minRun: 1, maxRun: 3 },
+      { type: 'road',   weight: 38, minRun: 1, maxRun: 3 },
+      { type: 'tracks', weight: 8,  minRun: 1, maxRun: 1 },
+      { type: 'river',  weight: 14, minRun: 1, maxRun: 2 },
+    ],
+  },
+  {
+    minDepth: 40,
+    weights: [
+      { type: 'grass',  weight: 30, minRun: 1, maxRun: 3 },
+      { type: 'road',   weight: 32, minRun: 1, maxRun: 4 },
+      { type: 'tracks', weight: 13, minRun: 1, maxRun: 2 },
+      { type: 'river',  weight: 25, minRun: 1, maxRun: 3 },
+    ],
+  },
+  {
+    minDepth: 80,
+    weights: [
+      { type: 'grass',  weight: 24, minRun: 1, maxRun: 2 },
+      { type: 'road',   weight: 32, minRun: 1, maxRun: 4 },
+      { type: 'tracks', weight: 16, minRun: 1, maxRun: 2 },
+      { type: 'river',  weight: 28, minRun: 1, maxRun: 5 },
+    ],
+  },
 ];
+
+function tierForDepth(depth) {
+  let chosen = BIOME_TIERS[0];
+  for (const t of BIOME_TIERS) {
+    if (depth >= t.minDepth) chosen = t;
+  }
+  return chosen.weights;
+}
 
 // mulberry32
 function rng(seed) {
@@ -100,11 +141,12 @@ export class World {
       this._currentRun.remaining--;
       return this._currentRun.type;
     }
-    // Pick a new biome by weight.
-    const total = BIOME_WEIGHTS.reduce((s, b) => s + b.weight, 0);
+    // Pick a new biome by weight from the tier matching the upcoming row's depth.
+    const tier = tierForDepth(this._nextRowToSpawn);
+    const total = tier.reduce((s, b) => s + b.weight, 0);
     let r = this._rand() * total;
-    let chosen = BIOME_WEIGHTS[0];
-    for (const b of BIOME_WEIGHTS) {
+    let chosen = tier[0];
+    for (const b of tier) {
       r -= b.weight;
       if (r <= 0) { chosen = b; break; }
     }

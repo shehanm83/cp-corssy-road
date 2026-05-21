@@ -8,8 +8,18 @@ const characterOverlay = document.getElementById('character-overlay');
 const gameOverOverlay = document.getElementById('gameover-overlay');
 const hud = document.getElementById('hud');
 
-function showTitle()    { titleOverlay.classList.remove('hidden'); characterOverlay.classList.add('hidden'); gameOverOverlay.classList.add('hidden'); hud.classList.add('hidden'); }
-function showCharacter(){ titleOverlay.classList.add('hidden'); characterOverlay.classList.remove('hidden'); renderCharacterGrid(); }
+function showTitle() {
+  titleOverlay.classList.remove('hidden');
+  characterOverlay.classList.add('hidden');
+  gameOverOverlay.classList.add('hidden');
+  hud.classList.add('hidden');
+  renderHomePanel();
+}
+function showCharacter() {
+  titleOverlay.classList.add('hidden');
+  characterOverlay.classList.remove('hidden');
+  renderCharacterGrid();
+}
 function startGame() {
   titleOverlay.classList.add('hidden');
   characterOverlay.classList.add('hidden');
@@ -18,10 +28,21 @@ function startGame() {
   game.start();
 }
 
-document.getElementById('start-btn').addEventListener('click', startGame);
-document.getElementById('character-btn').addEventListener('click', showCharacter);
+// Home → picker → game. Post-mortem retries (RE-OPEN TICKET) skip the picker
+// since the user just picked; HOME (OUT OF OFFICE) returns to the home flow.
+document.getElementById('newgame-btn').addEventListener('click', showCharacter);
+document.getElementById('begin-btn').addEventListener('click', startGame);
 document.getElementById('character-back').addEventListener('click', showTitle);
 document.getElementById('retry-btn').addEventListener('click', startGame);
+document.getElementById('home-btn').addEventListener('click', showTitle);
+
+function renderHomePanel() {
+  // Home screen intentionally does NOT show the current colleague — that's only
+  // revealed in the picker once the user clicks NEW GAME.
+  document.getElementById('home-best').textContent  = String(game.world?.bestScore ?? 0);
+  document.getElementById('home-runs').textContent  = String(game.totalRuns ?? 0);
+  document.getElementById('home-coins').textContent = String(game.faces?.totalCoins() ?? 0);
+}
 
 function renderCharacterGrid() {
   const grid = document.getElementById('character-grid');
@@ -109,4 +130,5 @@ window.__game = game;
 (async () => {
   await game.init();
   game.applyCurrentFace();
+  renderHomePanel();
 })();
