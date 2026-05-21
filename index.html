@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+    <meta name="theme-color" content="#7ec0ee" />
+    <title>Crossy Road · Cambio Platform</title>
+    <style>
+      * { box-sizing: border-box; }
+      html, body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        background: #0a0a18;
+        overflow: hidden;
+        font-family: 'Courier New', ui-monospace, monospace;
+        color: #fff;
+        -webkit-user-select: none;
+        user-select: none;
+      }
+      #game-canvas {
+        display: block;
+        width: 100vw;
+        height: 100vh;
+      }
+      #hud {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        z-index: 10;
+      }
+      #hud .panel {
+        position: absolute;
+        padding: 10px 14px;
+        background: rgba(10, 10, 30, 0.55);
+        border: 2px solid #3355cc;
+        color: #ffe44a;
+        font-size: 18px;
+        text-shadow: 2px 2px 0 #000;
+        image-rendering: pixelated;
+      }
+      #score      { top: 16px; left: 16px; }
+      #high-score { top: 16px; right: 16px; }
+      #coins      { top: 16px; left: 50%; transform: translateX(-50%); }
+      .face-card {
+        width: 96px;
+        height: 116px;
+        background: rgba(255,255,255,0.06);
+        border: 3px solid #3355cc;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-start;
+        padding: 4px;
+        cursor: pointer;
+        position: relative;
+        image-rendering: pixelated;
+      }
+      .face-card.selected { border-color: #ffe44a; box-shadow: 0 0 0 3px rgba(255,228,74,0.4); }
+      .face-card.locked   { opacity: .35; cursor: default; }
+      .face-card canvas   { width: 80px; height: 80px; image-rendering: pixelated; }
+      .face-card .name    { font-size: 12px; margin-top: 2px; color: #fff; text-shadow: 1px 1px 0 #000; }
+      .face-card .lock    {
+        position: absolute; top: 2px; right: 2px;
+        background: rgba(0,0,0,0.6); padding: 2px 4px;
+        font-size: 10px; color: #ffe44a;
+      }
+      #mute-btn   {
+        bottom: 16px; right: 16px;
+        pointer-events: auto;
+        cursor: pointer;
+        background: rgba(10, 10, 30, 0.7);
+        border: 2px solid #3355cc;
+        color: #fff;
+        font-family: inherit;
+        font-size: 18px;
+        padding: 8px 12px;
+      }
+      .overlay {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 18px;
+        background: rgba(10, 10, 30, 0.85);
+        z-index: 100;
+        text-align: center;
+        padding: 24px;
+      }
+      .overlay h1 { font-size: 48px; color: #ffe44a; text-shadow: 3px 3px 0 #000; margin: 0; }
+      .overlay p  { font-size: 20px; margin: 4px 0; }
+      .overlay button {
+        font-family: inherit;
+        font-size: 20px;
+        padding: 14px 28px;
+        background: #3355cc;
+        color: #fff;
+        border: 3px solid #ffe44a;
+        cursor: pointer;
+      }
+      .overlay button:hover { background: #4466dd; }
+      .hidden { display: none !important; }
+    </style>
+  </head>
+  <body>
+    <canvas id="game-canvas"></canvas>
+
+    <div id="hud" class="hidden">
+      <div id="score"      class="panel">0</div>
+      <div id="high-score" class="panel">BEST 0</div>
+      <div id="coins"      class="panel">★ 0</div>
+      <button id="mute-btn">🔊</button>
+    </div>
+
+    <div id="title-overlay" class="overlay">
+      <h1 style="font-size:42px;line-height:1.1;">Crossy Road<br/><span style="font-size:24px;color:#7ec0ee;">Cambio&nbsp;Platform&nbsp;edition</span></h1>
+      <p style="font-size:18px;color:#ffe44a;margin-top:-4px;">"Victor Code is NOT easy"</p>
+      <p style="opacity:.8;font-size:14px;line-height:1.5;max-width:560px;">
+        dodge the cars · dodge the deploys · dodge Iago in code review<br/>
+        collect colleagues · break prod · do <em>not</em> miss standup
+      </p>
+      <p style="opacity:.6;font-size:13px;">arrow keys / WASD · swipe on touch</p>
+      <div style="display:flex;gap:14px;">
+        <button id="start-btn">CLOCK&nbsp;IN</button>
+        <button id="character-btn">PICK&nbsp;COLLEAGUE</button>
+      </div>
+    </div>
+
+    <div id="character-overlay" class="overlay hidden">
+      <h1>PICK A FACE</h1>
+      <div id="character-grid"
+           style="display:grid;grid-template-columns:repeat(4, 96px);gap:14px;margin:14px 0;">
+      </div>
+      <p id="character-hint" style="opacity:.7;font-size:14px;">pick your colleague · face-coins on the road = bonus points</p>
+      <button id="character-back">BACK</button>
+    </div>
+
+    <div id="gameover-overlay" class="overlay hidden">
+      <h1>POST-MORTEM</h1>
+      <p style="opacity:.7;font-size:14px;margin-top:-10px;">root cause:</p>
+      <p id="death-cause">squashed</p>
+      <p>tickets&nbsp;closed&nbsp;<span id="final-score">0</span></p>
+      <p id="new-best" class="hidden" style="color:#ffe44a;font-size:24px;text-shadow:2px 2px 0 #000;">★ PROMOTION UNLOCKED ★</p>
+      <button id="retry-btn">RE-OPEN&nbsp;THE&nbsp;TICKET</button>
+    </div>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

@@ -1,0 +1,19 @@
+{
+  "name": "cp-retro",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "3D Crossy Road-style endless runner with face-textured characters",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "pixi.js": "^7.4.0",
+    "pixi3d": "^2.5.0"
+  },
+  "devDependencies": {
+    "vite": "^5.4.0"
+  }
+}
