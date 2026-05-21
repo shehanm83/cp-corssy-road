@@ -1,19 +1,11 @@
 {
   "_README": "Each face is a procedurally-drawn cartoon avatar. To add a new colleague, append an entry with skin/hair/eyes/mouth hex colors plus optional beard, glasses, and hairStyle ('short' | 'long' | 'fluffy' | 'bald' | 'mohawk'). To use a real photo, set 'file' instead and drop the image in this folder.",
   "coinUnlockThreshold": 6,
-  "defaultUnlocked": ["fernando","henrik","iago","martin","nadees","victor","anna","erik","petra","magnus","karin","linnea"],
+  "defaultUnlocked": ["hotfix-hank", "caffeine-carla", "backlog-bob", "sprint-demon"],
   "faces": [
-    { "id": "fernando", "name": "Fernando", "placeholder": { "skin": "#d8a777", "hair": "#2a1810", "eyes": "#2a1810", "mouth": "#9a3340", "beard": "#1a0e08", "glasses": "#1a1a1a", "hairStyle": "short" } },
-    { "id": "henrik",   "name": "Henrik",   "placeholder": { "skin": "#f0c8a0", "hair": "#d4a04a", "eyes": "#2a3a55", "mouth": "#a23548", "hairStyle": "short" } },
-    { "id": "iago",     "name": "Iago",     "placeholder": { "skin": "#d5a07a", "hair": "#1a0e08", "eyes": "#3a2510", "mouth": "#aa3344", "beard": "#1a0e08", "hairStyle": "short" } },
-    { "id": "martin",   "name": "Martin",   "placeholder": { "skin": "#f4d9b8", "hair": "#c8a050", "eyes": "#3a5a85", "mouth": "#a23548", "hairStyle": "short" } },
-    { "id": "nadees",   "name": "Nadees",   "placeholder": { "skin": "#7a5030", "hair": "#0a0a0a", "eyes": "#1a0e08", "mouth": "#982238", "beard": "#0a0a0a", "hairStyle": "short" } },
-    { "id": "victor",   "name": "Victor",   "placeholder": { "skin": "#e8c4a0", "hair": "#7a4a22", "eyes": "#3a5a85", "mouth": "#a23548", "beard": "#5a3318", "hairStyle": "short" } },
-    { "id": "anna",     "name": "Anna",     "placeholder": { "skin": "#f4d9b8", "hair": "#e8c878", "eyes": "#2a5a8a", "mouth": "#cc5566", "hairStyle": "long" } },
-    { "id": "erik",     "name": "Erik",     "placeholder": { "skin": "#e8b890", "hair": "#aa4422", "eyes": "#3a5a30", "mouth": "#aa3344", "beard": "#882200", "hairStyle": "fluffy" } },
-    { "id": "petra",    "name": "Petra",    "placeholder": { "skin": "#f0c8a0", "hair": "#2a1810", "eyes": "#3a2510", "mouth": "#cc4466", "glasses": "#2a2a2a", "hairStyle": "long" } },
-    { "id": "magnus",   "name": "Magnus",   "placeholder": { "skin": "#f0d0a8", "hair": "#7a4a22", "eyes": "#3a4a6a", "mouth": "#aa3344", "beard": "#5a3318", "hairStyle": "short" } },
-    { "id": "karin",    "name": "Karin",    "placeholder": { "skin": "#e8c4a0", "hair": "#3a2510", "eyes": "#3a2510", "mouth": "#cc5566", "hairStyle": "long" } },
-    { "id": "linnea",   "name": "Linnea",   "placeholder": { "skin": "#f4d9b8", "hair": "#f0e088", "eyes": "#3a5a8a", "mouth": "#cc5566", "hairStyle": "long" } }
+    { "id": "hotfix-hank",    "name": "Hotfix Hank",    "placeholder": { "skin": "#e8c4a0", "hair": "#5a3a22", "eyes": "#3a2a18", "mouth": "#a23548", "glasses": "#1a1a1a", "hairStyle": "short" } },
+    { "id": "caffeine-carla", "name": "Caffeine Carla", "placeholder": { "skin": "#f4d9b8", "hair": "#2a1810", "eyes": "#2a1810", "mouth": "#cc4466", "glasses": "#3a3a3a", "hairStyle": "long" } },
+    { "id": "backlog-bob",    "name": "Backlog Bob",    "placeholder": { "skin": "#d5a07a", "hair": "#5a3318", "eyes": "#3a2510", "mouth": "#a23548", "beard": "#3a1f10", "hairStyle": "bald" } },
+    { "id": "sprint-demon",   "name": "Sprint Demon",   "placeholder": { "skin": "#e8a878", "hair": "#aa3322", "eyes": "#3a5a30", "mouth": "#882233", "beard": "#882200", "hairStyle": "fluffy" } }
   ]
 }
