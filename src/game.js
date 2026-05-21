@@ -9,6 +9,8 @@ import { Audio } from './audio.js';
 import { Effects } from './effects.js';
 import { SkyTalk } from './skytalk.js';
 import { POWERUP_DEFS } from './powerups.js';
+import { pickDeath } from './deaths.js';
+import { pickIdleThought } from './milestones.js';
 
 export class Game {
   constructor(canvas) {
@@ -81,6 +83,8 @@ export class Game {
       this._hideBuffHUD();
     };
 
+    this.world.onMilestone = (m) => this._showMilestone(m);
+
     this.state = 'menu';
     this._idleMS = 0;          // ms since last forward advance
     this._idleEagleSpawn = null; // animation state for the eagle dive
@@ -91,6 +95,8 @@ export class Game {
   _resetIdle() {
     this._idleMS = 0;
     this._idleEagleSpawn = null;
+    this._thoughtShown = false;
+    this._hideThoughtBubble();
   }
 
   async init() {
@@ -262,9 +268,57 @@ export class Game {
     // ~15s of zero input (no hops at all) → eagle. Any successful hop
     // resets this via player.onLand, so genuine dodging is safe.
     const IDLE_LIMIT_MS = 15000;
+    const IDLE_THOUGHT_MS = 4500;
     this._idleMS += deltaMS;
-    if (this._idleMS > IDLE_LIMIT_MS) {
-      this.gameOver('the eagle got you');
+    // Show a thought bubble once after a few seconds of standing still.
+    if (!this._thoughtShown && this._idleMS > IDLE_THOUGHT_MS) {
+      this._thoughtShown = true;
+      this._showThoughtBubble(pickIdleThought());
     }
+    if (this._idleMS > IDLE_LIMIT_MS) {
+      this.gameOver(pickDeath('eagle'));
+    }
+  }
+
+  _showMilestone(m) {
+    this.audio.unlock();
+    const el = document.getElementById('milestone-toast');
+    if (!el) return;
+    document.getElementById('milestone-title').textContent = m.title;
+    document.getElementById('milestone-row').textContent = `row ${m.row}`;
+    el.classList.remove('hidden');
+    // Replay fade-in by toggling a class — animate via CSS transitions.
+    el.style.opacity = '0';
+    el.style.transform = 'translate(-50%, 12px) scale(0.92)';
+    requestAnimationFrame(() => {
+      el.style.opacity = '1';
+      el.style.transform = 'translate(-50%, 0) scale(1)';
+    });
+    if (this._milestoneHideT) clearTimeout(this._milestoneHideT);
+    this._milestoneHideT = setTimeout(() => {
+      el.style.opacity = '0';
+      el.style.transform = 'translate(-50%, -16px) scale(0.95)';
+      setTimeout(() => el.classList.add('hidden'), 600);
+    }, 2200);
+  }
+
+  _showThoughtBubble(text) {
+    const el = document.getElementById('thought-bubble');
+    if (!el) return;
+    document.getElementById('thought-text').textContent = text;
+    el.classList.remove('hidden');
+    el.style.opacity = '1';
+    if (this._thoughtHideT) clearTimeout(this._thoughtHideT);
+    this._thoughtHideT = setTimeout(() => {
+      el.style.opacity = '0';
+      setTimeout(() => el.classList.add('hidden'), 500);
+    }, 2500);
+  }
+
+  _hideThoughtBubble() {
+    const el = document.getElementById('thought-bubble');
+    if (!el) return;
+    el.style.opacity = '0';
+    setTimeout(() => el.classList.add('hidden'), 300);
   }
 }

@@ -1,6 +1,7 @@
 import { Mesh3D, Container3D } from 'pixi3d/pixi7';
 import { TILE, PALETTE, HALF_WIDTH } from '../scene.js';
 import { cachedMat } from './grass.js';
+import { pickDeath } from '../deaths.js';
 
 const TRAIN_HALF_LEN = 4.5;
 const TRAIN_HALF_WIDTH = 0.40;
@@ -190,7 +191,7 @@ export class TracksRow {
     if (Math.abs(pz - this.rowIndex) > 0.5) return null;
     const px = player.container.position.x;
     if (Math.abs(px - this._trainPos) < TRAIN_HALF_LEN + PLAYER_HALF_WIDTH) {
-      return 'flattened by a train';
+      return pickDeath('train');
     }
     return null;
   }

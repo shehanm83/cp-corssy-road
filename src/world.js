@@ -2,6 +2,7 @@ import { GrassRow } from './biomes/grass.js';
 import { RoadRow } from './biomes/road.js';
 import { TracksRow } from './biomes/tracks.js';
 import { RiverRow } from './biomes/river.js';
+import { MILESTONES } from './milestones.js';
 
 const ROWS_AHEAD = 25;
 const ROWS_BEHIND = 6;
@@ -95,6 +96,7 @@ export class World {
     this.onCoin = null;          // (faceId, justUnlocked) => void
     this.onPowerup = null;       // (defId) => void
     this.onShieldConsumed = null;// () => void — fired when PR APPROVED absorbs a death
+    this.onMilestone = null;     // (milestoneDef) => void
     this._updateBestHUD();
   }
 
@@ -191,11 +193,18 @@ export class World {
 
   onPlayerAdvance(newRow) {
     if (newRow > this._farthestPlayerRow) {
+      const prev = this._farthestPlayerRow;
       this._farthestPlayerRow = newRow;
       this.score = newRow;
       this._updateScoreHUD();
       while (this._nextRowToSpawn < newRow + ROWS_AHEAD) this._spawnNext();
       this._recycleBehind(newRow);
+      // Career milestones crossed this hop — fires once per milestone per run.
+      if (this.onMilestone) {
+        for (const m of MILESTONES) {
+          if (prev < m.row && m.row <= newRow) this.onMilestone(m);
+        }
+      }
     }
   }
 

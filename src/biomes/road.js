@@ -2,6 +2,7 @@ import * as PIXI from 'pixi.js';
 import { Mesh3D, Container3D, StandardMaterial, Color } from 'pixi3d/pixi7';
 import { TILE, PALETTE, HALF_WIDTH } from '../scene.js';
 import { cachedMat } from './grass.js';
+import { pickDeath } from '../deaths.js';
 
 const FLAG_CHANCE = 0.18;
 const FLAG_W = 768;
@@ -230,7 +231,7 @@ export class RoadRow {
     const px = player.container.position.x;
     for (const car of this.cars) {
       if (Math.abs(px - car.position) < CAR_HALF_LEN + PLAYER_HALF_WIDTH) {
-        return 'squashed by a car';
+        return pickDeath('road');
       }
     }
     return null;

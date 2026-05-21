@@ -1,6 +1,7 @@
 import { Mesh3D, Container3D } from 'pixi3d/pixi7';
 import { TILE, PALETTE, HALF_WIDTH } from '../scene.js';
 import { cachedMat } from './grass.js';
+import { pickDeath } from '../deaths.js';
 
 const LOG_HALF_WIDTH = 0.42;       // along Z (row depth)
 const LOG_LENGTHS = [1, 2, 3];     // tiles long
@@ -137,7 +138,7 @@ export class RiverRow {
     // Off the playable strip while in water → drown.
     if (px < -HALF_WIDTH - 0.4 || px > HALF_WIDTH + 0.4) {
       this._playerRiding = null;
-      return 'swept off the river';
+      return pickDeath('sweep');
     }
 
     // (Re-)detect which log the player is currently over.
@@ -149,7 +150,7 @@ export class RiverRow {
     }
     if (!onLog) {
       this._playerRiding = null;
-      return 'drowned in the river';
+      return pickDeath('drown');
     }
 
     // If we just switched logs (or just boarded), recapture the offset so we
