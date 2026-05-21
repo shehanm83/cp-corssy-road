@@ -145,10 +145,47 @@
       .gameover-card .who { font-size: 14px; color: #fff; text-shadow: 1px 1px 0 #000; }
       .gameover-card .who small { display: block; font-size: 10px; opacity: .6; letter-spacing: 1px; }
     </style>
-    <script type="module" crossorigin src="./assets/index-CIMM2BTC.js"></script>
+    <script type="module" crossorigin src="./assets/index-BZbOQ46s.js"></script>
   </head>
   <body>
     <canvas id="game-canvas"></canvas>
+
+    <div id="milestone-toast" class="hidden" style="
+        position: fixed;
+        top: 28%;
+        left: 50%;
+        transform: translate(-50%, 0);
+        padding: 14px 24px;
+        background: rgba(10, 10, 30, 0.85);
+        border: 3px solid #ffe44a;
+        color: #ffe44a;
+        font-family: 'Courier New', monospace;
+        text-align: center;
+        z-index: 30;
+        pointer-events: none;
+        text-shadow: 2px 2px 0 #000;
+        transition: opacity 350ms ease-out, transform 350ms ease-out;">
+      <div id="milestone-title" style="font-size: 22px; font-weight: bold;">Senior Developer</div>
+      <div id="milestone-row"   style="font-size: 12px; opacity: 0.7; letter-spacing: 2px;">row 100</div>
+    </div>
+
+    <div id="thought-bubble" class="hidden" style="
+        position: fixed;
+        top: 130px;
+        left: 50%;
+        transform: translateX(-50%);
+        padding: 6px 12px;
+        background: rgba(255, 255, 255, 0.92);
+        border: 2px solid #3a2510;
+        color: #3a2510;
+        font-family: 'Courier New', monospace;
+        font-size: 14px;
+        z-index: 25;
+        pointer-events: none;
+        transition: opacity 400ms ease-out;
+        border-radius: 14px;">
+      <span style="margin-right:4px;">💭</span><span id="thought-text">// is this in the sprint?</span>
+    </div>
 
     <div id="hud" class="hidden">
       <div id="score"      class="panel">0</div>
