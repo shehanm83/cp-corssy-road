@@ -1,0 +1,13 @@
+{
+  "_README": "Drop face PNGs/JPGs into /public/faces/ and reference them via the 'file' field. To use a procedural placeholder instead, omit 'file' and provide 'placeholder' with skin/hair/eyes hex colors. Faces marked 'defaultUnlocked' are playable immediately; others unlock by collecting matching face coins.",
+  "coinUnlockThreshold": 6,
+  "defaultUnlocked": ["fernando", "henrik", "iago", "martin", "nadees", "victor"],
+  "faces": [
+    { "id": "fernando", "name": "Fernando", "file": "fernando.jpg" },
+    { "id": "henrik",   "name": "Henrik",   "file": "henrik.jpg" },
+    { "id": "iago",     "name": "Iago",     "file": "iago.jpg" },
+    { "id": "martin",   "name": "Martin",   "file": "martin.jpg" },
+    { "id": "nadees",   "name": "Nadees",   "file": "nadees.jpg" },
+    { "id": "victor",   "name": "Victor",   "file": "victor.jpg" }
+  ]
+}
