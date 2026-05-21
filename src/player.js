@@ -30,6 +30,12 @@ export class Player {
     this._from = null;
     this._to = null;
 
+    // Powerup-driven state flags.
+    this.frozen = false;        // STANDUP! bell — input ignored
+    this.invincible = false;    // OUT OF OFFICE — collisions ignored
+    this.hasShield = false;     // PR APPROVED — next death is consumed
+    this.hopDurationMul = 1;    // ESPRESSO — multiplier on HOP_DURATION_MS
+
     // Blob shadow lives in the scene (not parented to the player) so it stays
     // on the ground while the player arcs through a hop.
     this.shadow = makeBlobShadow(0.55, 0.55);
@@ -135,6 +141,11 @@ export class Player {
     this._squashT = 0;
     this.container.scale.set(1, 1, 1);
     this.shadow.visible = true;
+    // Clear any leftover buff state from a previous run.
+    this.frozen = false;
+    this.invincible = false;
+    this.hasShield = false;
+    this.hopDurationMul = 1;
   }
 
   setFaceTexture(texture) {
@@ -143,7 +154,7 @@ export class Player {
   }
 
   tryHop(dx, dz) {
-    if (this.hopping) return false;
+    if (this.hopping || this.frozen) return false;
     // Re-sync col from the visual position so log-drift doesn't desync the grid.
     this.col = Math.round(this.container.position.x / TILE);
     if (this.canHop && !this.canHop(this.col + dx, this.row + dz)) return false;
@@ -180,7 +191,7 @@ export class Player {
       this._syncShadow();
       return;
     }
-    this._hopT += deltaMS / HOP_DURATION_MS;
+    this._hopT += deltaMS / (HOP_DURATION_MS * this.hopDurationMul);
     if (this._hopT >= 1) {
       this._snapTo(this._to.col, this._to.row);
       this.container.position.y = 0;

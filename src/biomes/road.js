@@ -28,7 +28,7 @@ function paintFlag(ctx, mirror) {
   ctx.font = 'bold 80px "Courier New", monospace';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText('Victor Code',  FLAG_W / 2, 84);
+  ctx.fillText('Viktor Code',  FLAG_W / 2, 84);
   ctx.fillText('is NOT easy',  FLAG_W / 2, 180);
   ctx.restore();
 }

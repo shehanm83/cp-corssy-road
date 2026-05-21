@@ -8,8 +8,10 @@ const PLAYER_HALF_WIDTH = 0.30;
 const TRAIN_SPEED = 9.5;             // fast — telegraphed via warning lamp
 const TRAIN_WRAP = HALF_WIDTH + TRAIN_HALF_LEN + 2;
 const WARNING_LEAD_MS = 1500;        // lamp blink time before train arrives
-const MIN_GAP_MS = 4500;
-const MAX_GAP_MS = 9500;
+// Tightened so a player crossing a tracks row actually sees trains regularly.
+// Was 4500/9500 ms which left the rail empty most of the time.
+const MIN_GAP_MS = 2200;
+const MAX_GAP_MS = 4800;
 
 const PHASE_IDLE = 'idle';
 const PHASE_WARN = 'warn';

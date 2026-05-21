@@ -7,6 +7,8 @@ import { World } from './world.js';
 import { FaceRegistry } from './faces.js';
 import { Audio } from './audio.js';
 import { Effects } from './effects.js';
+import { SkyTalk } from './skytalk.js';
+import { POWERUP_DEFS } from './powerups.js';
 
 export class Game {
   constructor(canvas) {
@@ -24,6 +26,7 @@ export class Game {
     this.player = new Player(this.scene);
     this.audio = new Audio();
     this.effects = new Effects(this.scene);
+    this.skytalk = new SkyTalk(this.scene);
 
     this.scene.follow(this.player);
 
@@ -43,6 +46,9 @@ export class Game {
       // Puff a little dust where the player just touched down.
       const p = this.player.container.position;
       this.effects.dust({ x: p.x, y: 0.05, z: p.z });
+      // Any landed hop — forward, side, or back — proves the player is
+      // alive and intentionally waiting/dodging; refresh the eagle timer.
+      this._resetIdle();
     };
     this.world.onCoin = (faceId, justUnlocked) => {
       this.audio.coin();
@@ -57,6 +63,17 @@ export class Game {
           setTimeout(() => { if (el) el.textContent = `★ ${this.world.runCoins}`; }, 1800);
         }
       }
+    };
+
+    // Power-up plumbing.
+    this._buffTimers = {};
+    this.world.onPowerup = (defId) => this._applyPowerup(defId);
+    this.world.onShieldConsumed = () => {
+      this.audio.unlock();
+      const p = this.player.container.position;
+      this.effects.sparkle({ x: p.x, y: 0.5, z: p.z });
+      this.effects.shakeCamera(0.20, 220);
+      this._hideBuffHUD();
     };
 
     this.state = 'menu';
@@ -83,6 +100,7 @@ export class Game {
   start() {
     this.state = 'playing';
     this._resetIdle();
+    this._clearAllBuffs();
     this.world.reset();
     this.scene.root.addChild(this.player.container);
     this.player._snapTo(0, 0);
@@ -91,6 +109,94 @@ export class Game {
     this.input.enable();
     this.audio.ensureContext();
     this.audio.startMusic();
+    this.skytalk.enableToasts();
+  }
+
+  _applyPowerup(defId) {
+    const def = POWERUP_DEFS[defId];
+    if (!def) return;
+    const p = this.player.container.position;
+    this.effects.sparkle({ x: p.x, y: 0.6, z: p.z });
+    if (def.bad) {
+      this.audio.death();   // ominous-sounding zap
+      this.effects.shakeCamera(0.18, 200);
+    } else {
+      this.audio.coin();
+    }
+
+    switch (defId) {
+      case 'espresso':
+        this.player.hopDurationMul = 0.5;
+        this._setBuffTimer('espresso', def.duration, () => { this.player.hopDurationMul = 1; });
+        break;
+      case 'pr':
+        this.player.hasShield = true;
+        // no timer — until consumed
+        break;
+      case 'ooo':
+        this.player.invincible = true;
+        this._setBuffTimer('ooo', def.duration, () => { this.player.invincible = false; });
+        break;
+      case 'bell':
+        this.player.frozen = true;
+        this._setBuffTimer('bell', def.duration, () => { this.player.frozen = false; });
+        break;
+    }
+    this._showBuffHUD(def);
+  }
+
+  _setBuffTimer(id, durationMS, cleanup) {
+    if (this._buffTimers[id]) clearTimeout(this._buffTimers[id]);
+    this._buffTimers[id] = setTimeout(() => {
+      cleanup();
+      delete this._buffTimers[id];
+      // Only hide HUD if the currently-displayed buff is the one that expired.
+      const el = document.getElementById('buff-indicator');
+      if (el && el.dataset.activeId === id) this._hideBuffHUD();
+    }, durationMS);
+  }
+
+  _clearAllBuffs() {
+    for (const id of Object.keys(this._buffTimers || {})) {
+      clearTimeout(this._buffTimers[id]);
+    }
+    this._buffTimers = {};
+    if (this.player) {
+      this.player.frozen = false;
+      this.player.invincible = false;
+      this.player.hasShield = false;
+      this.player.hopDurationMul = 1;
+    }
+    this._hideBuffHUD();
+  }
+
+  _showBuffHUD(def) {
+    const el = document.getElementById('buff-indicator');
+    if (!el) return;
+    el.dataset.activeId = def.id;
+    el.style.borderColor = def.color;
+    document.getElementById('buff-icon').textContent = def.icon;
+    document.getElementById('buff-label').textContent = def.label;
+    el.classList.remove('hidden');
+    // Animate the depletion bar — for PR (duration 0) the bar stays full.
+    const bar = document.getElementById('buff-bar');
+    bar.style.background = def.barColor || '#ffe44a';
+    bar.style.transition = 'none';
+    bar.style.width = '100%';
+    // Force a layout flush then start the transition.
+    void bar.offsetWidth;
+    if (def.duration > 0) {
+      bar.style.transition = `width ${def.duration}ms linear`;
+      bar.style.width = '0%';
+    }
+  }
+
+  _hideBuffHUD() {
+    const el = document.getElementById('buff-indicator');
+    if (el) {
+      el.classList.add('hidden');
+      el.dataset.activeId = '';
+    }
   }
 
   gameOver(cause = 'squashed') {
@@ -99,6 +205,8 @@ export class Game {
     this.input.disable();
     this.audio.death();
     this.audio.stopMusic();
+    this.skytalk.disableToasts();
+    this._clearAllBuffs();
     // Visceral feedback: shake the camera, splat the player, puff some dust.
     this.effects.shakeCamera(0.45, 380);
     this.player.squash();
@@ -141,12 +249,14 @@ export class Game {
       this.player.update(deltaMS);
     }
     this.effects.update(deltaMS);
+    this.skytalk.update(deltaMS, this.player);
     this.scene.update(deltaMS, this.effects.cameraShakeOffset());
   }
 
   _tickIdle(deltaMS) {
-    // After ~10s without advancing forward, an eagle takes you.
-    const IDLE_LIMIT_MS = 10000;
+    // ~15s of zero input (no hops at all) → eagle. Any successful hop
+    // resets this via player.onLand, so genuine dodging is safe.
+    const IDLE_LIMIT_MS = 15000;
     this._idleMS += deltaMS;
     if (this._idleMS > IDLE_LIMIT_MS) {
       this.gameOver('the eagle got you');

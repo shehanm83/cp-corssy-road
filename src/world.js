@@ -93,6 +93,8 @@ export class World {
     this._currentRun = null;     // { type, remaining } — biome streak state
     this.onDeath = null;
     this.onCoin = null;          // (faceId, justUnlocked) => void
+    this.onPowerup = null;       // (defId) => void
+    this.onShieldConsumed = null;// () => void — fired when PR APPROVED absorbs a death
     this._updateBestHUD();
   }
 
@@ -142,11 +144,17 @@ export class World {
       return this._currentRun.type;
     }
     // Pick a new biome by weight from the tier matching the upcoming row's depth.
+    // Forbid back-to-back runs of the same type so you don't get road, road,
+    // road forever — at worst the second road run rolls again next time.
     const tier = tierForDepth(this._nextRowToSpawn);
-    const total = tier.reduce((s, b) => s + b.weight, 0);
+    const lastType = this._currentRun?.type;
+    let eligible = lastType ? tier.filter((b) => b.type !== lastType) : tier;
+    if (eligible.length === 0) eligible = tier;
+
+    const total = eligible.reduce((s, b) => s + b.weight, 0);
     let r = this._rand() * total;
-    let chosen = tier[0];
-    for (const b of tier) {
+    let chosen = eligible[0];
+    for (const b of eligible) {
       r -= b.weight;
       if (r <= 0) { chosen = b; break; }
     }
@@ -201,7 +209,6 @@ export class World {
     if (el) el.textContent = `★ ${this.runCoins}`;
   }
 
-  // Returns either a death-cause string, a coin-pickup object, or null.
   _sweepCollisions(player) {
     const pz = Math.round(player.container.position.z);
     for (const idx of [pz - 1, pz, pz + 1]) {
@@ -211,6 +218,7 @@ export class World {
       if (!result) continue;
       if (typeof result === 'string') return { death: result };
       if (result._coin) return { coin: result._coin };
+      if (result._powerup) return { powerup: result._powerup };
     }
     return null;
   }
@@ -220,13 +228,23 @@ export class World {
     if (!player) return;
     const r = this._sweepCollisions(player);
     if (!r) return;
-    if (r.death && this.onDeath) {
-      this.onDeath(r.death);
+    if (r.death) {
+      // OUT OF OFFICE → pass through.
+      if (player.invincible) return;
+      // PR APPROVED → consume the shield, no death.
+      if (player.hasShield) {
+        player.hasShield = false;
+        if (this.onShieldConsumed) this.onShieldConsumed();
+        return;
+      }
+      if (this.onDeath) this.onDeath(r.death);
     } else if (r.coin) {
       this.runCoins += 1;
       this._updateCoinHUD();
       const justUnlocked = this.faces ? this.faces.collectCoin(r.coin.faceId) : false;
       if (this.onCoin) this.onCoin(r.coin.faceId, justUnlocked);
+    } else if (r.powerup) {
+      if (this.onPowerup) this.onPowerup(r.powerup.defId);
     }
   }
 }
