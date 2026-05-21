@@ -15,6 +15,12 @@ export class Input {
   enable()  { this._enabled = true; }
   disable() { this._enabled = false; }
 
+  // Public hop trigger for on-screen D-pad buttons. Honors the enabled gate.
+  fireHop(dx, dz) {
+    if (!this._enabled) return;
+    this.onHop(dx, dz);
+  }
+
   _onKey = (e) => {
     if (!this._enabled) return;
     const k = e.key;
@@ -47,7 +53,8 @@ export class Input {
 
     const absX = Math.abs(dx);
     const absY = Math.abs(dy);
-    const SWIPE_THRESHOLD = 25;
+    // Lower threshold for mobile — short flicks should still register.
+    const SWIPE_THRESHOLD = 18;
 
     if (absX < SWIPE_THRESHOLD && absY < SWIPE_THRESHOLD) {
       // treat as tap — hop forward

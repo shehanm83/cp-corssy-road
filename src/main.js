@@ -36,6 +36,40 @@ document.getElementById('character-back').addEventListener('click', showTitle);
 document.getElementById('retry-btn').addEventListener('click', startGame);
 document.getElementById('home-btn').addEventListener('click', showTitle);
 
+// Pause UI + keyboard shortcut
+document.getElementById('pause-btn').addEventListener('click', () => game.pause());
+document.getElementById('resume-btn').addEventListener('click', () => game.resume());
+document.getElementById('quit-btn').addEventListener('click', () => {
+  game.resume();           // exit the paused state cleanly
+  game.state = 'menu';
+  game.input.disable();
+  game.audio.stopMusic();
+  document.getElementById('pause-overlay').classList.add('hidden');
+  showTitle();
+});
+window.addEventListener('keydown', (e) => {
+  if (e.key === 'p' || e.key === 'P' || e.key === 'Escape') {
+    if (game.state === 'playing') game.pause();
+    else if (game.state === 'paused') game.resume();
+  }
+});
+
+// On-screen D-pad — auto-shown on touch devices.
+(function setupDPad() {
+  const dpad = document.getElementById('dpad');
+  if (!dpad) return;
+  const isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+  if (isTouchDevice) dpad.classList.remove('hidden');
+
+  const dirMap = { up: [0, 1], down: [0, -1], left: [1, 0], right: [-1, 0] };
+  for (const btn of dpad.querySelectorAll('button[data-dir]')) {
+    const [dx, dz] = dirMap[btn.dataset.dir];
+    const fire = (e) => { e.preventDefault(); game.input.fireHop(dx, dz); };
+    btn.addEventListener('touchstart', fire, { passive: false });
+    btn.addEventListener('mousedown', fire);
+  }
+})();
+
 function renderHomePanel() {
   // Home screen intentionally does NOT show the current colleague — that's only
   // revealed in the picker once the user clicks NEW GAME.

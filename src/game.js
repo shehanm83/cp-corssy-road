@@ -15,15 +15,17 @@ import { pickIdleThought } from './milestones.js';
 export class Game {
   constructor(canvas) {
     this.canvas = canvas;
+    // Crisp edges on hi-DPI screens, but cap on touch devices so we don't
+    // chew GPU/battery rendering 3x pixels on a phone.
+    const isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+    const dpr = window.devicePixelRatio || 1;
+    const resolution = isTouchDevice ? Math.min(dpr, 1.5) : dpr;
     this.app = new PIXI.Application({
       view: canvas,
       resizeTo: window,
       backgroundColor: 0x7ec0ee,
       antialias: true,
-      // Render at the device's actual pixel ratio for crisper edges on
-      // retina / hi-DPI screens. autoDensity matches the CSS size so the
-      // canvas still fills the viewport.
-      resolution: window.devicePixelRatio || 1,
+      resolution,
       autoDensity: true,
     });
 
@@ -106,6 +108,24 @@ export class Game {
   applyCurrentFace() {
     const f = this.faces.current();
     if (f?.texture) this.player.setFaceTexture(f.texture);
+  }
+
+  pause() {
+    if (this.state !== 'playing') return;
+    this.state = 'paused';
+    this.input.disable();
+    this.audio.stopMusic();
+    this.skytalk.disableToasts();
+    document.getElementById('pause-overlay')?.classList.remove('hidden');
+  }
+
+  resume() {
+    if (this.state !== 'paused') return;
+    this.state = 'playing';
+    this.input.enable();
+    this.audio.startMusic();
+    this.skytalk.enableToasts();
+    document.getElementById('pause-overlay')?.classList.add('hidden');
   }
 
   start() {
@@ -255,12 +275,14 @@ export class Game {
       this.player.update(deltaMS);
       this.world.update(deltaMS, this.player);
       this._tickIdle(deltaMS);
+      this.effects.update(deltaMS);
+      this.skytalk.update(deltaMS, this.player);
     } else if (this.state === 'gameOver') {
-      // Keep the squash animation going briefly after death.
+      // Keep the squash animation + lingering particles going briefly.
       this.player.update(deltaMS);
+      this.effects.update(deltaMS);
     }
-    this.effects.update(deltaMS);
-    this.skytalk.update(deltaMS, this.player);
+    // Camera and shake render every frame so paused screens stay live.
     this.scene.update(deltaMS, this.effects.cameraShakeOffset());
   }
 
