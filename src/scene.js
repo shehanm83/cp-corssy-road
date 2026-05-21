@@ -27,7 +27,9 @@ export const PALETTE = {
 
 const CAM_OFFSET = { x: 0, y: 5.5, z: -7.0 };
 const CAM_PITCH_DEG = 32;
-const CAM_LERP = 0.12;
+// Frame-rate-independent exponential ease: every second the camera covers
+// 1 - exp(-CAM_FOLLOW_RATE) ≈ 86% of the remaining distance.
+const CAM_FOLLOW_RATE = 6;
 
 export function flatMaterial(hex) {
   const m = new StandardMaterial();
@@ -100,8 +102,12 @@ export class Scene {
       this._cameraTargetZ = p.z + CAM_OFFSET.z;
     }
     const cam = Camera.main;
-    cam.position.x += (this._cameraTargetX - cam.position.x) * CAM_LERP;
-    cam.position.z += (this._cameraTargetZ - cam.position.z) * CAM_LERP;
+    // Exponential ease-out, frame-rate-independent. Replaces the old
+    // `pos += (target - pos) * 0.12` which jittered at high refresh rates.
+    const dt = Math.min(0.1, deltaMS / 1000);   // clamp huge frame gaps
+    const k = 1 - Math.exp(-CAM_FOLLOW_RATE * dt);
+    cam.position.x += (this._cameraTargetX - cam.position.x) * k;
+    cam.position.z += (this._cameraTargetZ - cam.position.z) * k;
     cam.position.y = CAM_OFFSET.y;
     if (shakeOffset) {
       cam.position.x += shakeOffset.x;

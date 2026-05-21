@@ -9,6 +9,9 @@ import { TILE, flatMaterial, makeBlobShadow } from './scene.js';
 
 const HOP_DURATION_MS = 240;
 const HOP_HEIGHT = 0.55;
+const FACING_LERP_DEG_PER_SEC = 720;   // 90° turn in ~125ms
+const IDLE_BOB_HZ = 1.4;
+const IDLE_BOB_AMP = 0.03;
 
 const flatMat = (hex) => flatMaterial(hex);
 
@@ -20,7 +23,9 @@ export class Player {
 
     this.col = 0;
     this.row = 0;
-    this.facing = 0; // degrees around Y
+    this.facing = 0;          // current rotation around Y (lerped toward _targetFacing)
+    this._targetFacing = 0;
+    this._idleT = 0;
 
     this._build();
     this._snapTo(0, 0);
@@ -141,6 +146,11 @@ export class Player {
     this._squashT = 0;
     this.container.scale.set(1, 1, 1);
     this.shadow.visible = true;
+    // Face forward again on respawn so the lerp doesn't catch leftover state.
+    this.facing = 0;
+    this._targetFacing = 0;
+    this._idleT = 0;
+    this.container.rotationQuaternion.setEulerAngles(0, 0, 0);
     // Clear any leftover buff state from a previous run.
     this.frozen = false;
     this.invincible = false;
@@ -163,18 +173,34 @@ export class Player {
     this._from = { col: this.col, row: this.row };
     this._to = { col: this.col + dx, row: this.row + dz };
 
-    // Rotate to face direction (snap rotation instantly; cute visual cue).
+    // Target a new facing direction; rotation lerps toward it each frame.
     // World +X is screen-LEFT under this camera, so positive dx faces screen-LEFT.
-    if (dz > 0) this.facing = 0;
-    else if (dz < 0) this.facing = 180;
-    else if (dx > 0) this.facing = 90;
-    else if (dx < 0) this.facing = -90;
-    this.container.rotationQuaternion.setEulerAngles(0, this.facing, 0);
+    if (dz > 0) this._targetFacing = 0;
+    else if (dz < 0) this._targetFacing = 180;
+    else if (dx > 0) this._targetFacing = 90;
+    else if (dx < 0) this._targetFacing = -90;
 
     return true;
   }
 
+  _stepFacing(deltaMS) {
+    // Lerp this.facing toward this._targetFacing via shortest-path angle delta.
+    let delta = this._targetFacing - this.facing;
+    while (delta > 180)  delta -= 360;
+    while (delta < -180) delta += 360;
+    if (Math.abs(delta) < 0.5) {
+      this.facing = this._targetFacing;
+    } else {
+      const step = FACING_LERP_DEG_PER_SEC * (deltaMS / 1000);
+      this.facing += Math.sign(delta) * Math.min(step, Math.abs(delta));
+    }
+    this.container.rotationQuaternion.setEulerAngles(0, this.facing, 0);
+  }
+
   update(deltaMS) {
+    // Smooth turns even when the player isn't hopping.
+    this._stepFacing(deltaMS);
+
     if (this._squashing) {
       this._squashT += deltaMS;
       const t = Math.min(1, this._squashT / 280);
@@ -183,14 +209,23 @@ export class Player {
       const xzScale = 1 + 0.4 * t;
       this.container.scale.set(xzScale, yScale, xzScale);
       this.container.position.y = 0;
-      if (this.shadow) this.shadow.visible = false; // shadow looks weird under a pancake
+      if (this.shadow) this.shadow.visible = false;
       this._syncShadow();
       return;
     }
+
     if (!this.hopping) {
+      // Subtle idle bob — a little breath so the player doesn't look frozen.
+      this._idleT += deltaMS;
+      const bobY = Math.sin((this._idleT / 1000) * IDLE_BOB_HZ * Math.PI * 2) * IDLE_BOB_AMP;
+      this.container.position.y = bobY;
       this._syncShadow();
       return;
     }
+    // Reset the idle phase whenever we leave the standing pose so the next
+    // idle starts cleanly at y=0.
+    this._idleT = 0;
+
     this._hopT += deltaMS / (HOP_DURATION_MS * this.hopDurationMul);
     if (this._hopT >= 1) {
       this._snapTo(this._to.col, this._to.row);

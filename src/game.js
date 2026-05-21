@@ -18,6 +18,11 @@ export class Game {
       resizeTo: window,
       backgroundColor: 0x7ec0ee,
       antialias: true,
+      // Render at the device's actual pixel ratio for crisper edges on
+      // retina / hi-DPI screens. autoDensity matches the CSS size so the
+      // canvas still fills the viewport.
+      resolution: window.devicePixelRatio || 1,
+      autoDensity: true,
     });
 
     this.scene = new Scene(this.app);
