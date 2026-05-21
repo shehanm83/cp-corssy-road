@@ -1,13 +1,11 @@
 {
-  "_README": "Drop face PNGs/JPGs into /public/faces/ and reference them via the 'file' field. To use a procedural placeholder instead, omit 'file' and provide 'placeholder' with skin/hair/eyes hex colors. Faces marked 'defaultUnlocked' are playable immediately; others unlock by collecting matching face coins.",
+  "_README": "Each face is a procedurally-drawn cartoon avatar. To add a new colleague, append an entry with skin/hair/eyes/mouth hex colors plus optional beard, glasses, and hairStyle ('short' | 'long' | 'fluffy' | 'bald' | 'mohawk'). To use a real photo, set 'file' instead and drop the image in this folder.",
   "coinUnlockThreshold": 6,
-  "defaultUnlocked": ["fernando", "henrik", "iago", "martin", "nadees", "victor"],
+  "defaultUnlocked": ["hotfix-hank", "caffeine-carla", "backlog-bob", "sprint-demon"],
   "faces": [
-    { "id": "fernando", "name": "Fernando", "file": "fernando.jpg" },
-    { "id": "henrik",   "name": "Henrik",   "file": "henrik.jpg" },
-    { "id": "iago",     "name": "Iago",     "file": "iago.jpg" },
-    { "id": "martin",   "name": "Martin",   "file": "martin.jpg" },
-    { "id": "nadees",   "name": "Nadees",   "file": "nadees.jpg" },
-    { "id": "victor",   "name": "Victor",   "file": "victor.jpg" }
+    { "id": "hotfix-hank",    "name": "Hotfix Hank",    "placeholder": { "skin": "#e8c4a0", "hair": "#5a3a22", "eyes": "#3a2a18", "mouth": "#a23548", "glasses": "#1a1a1a", "hairStyle": "short" } },
+    { "id": "caffeine-carla", "name": "Caffeine Carla", "placeholder": { "skin": "#f4d9b8", "hair": "#2a1810", "eyes": "#2a1810", "mouth": "#cc4466", "glasses": "#3a3a3a", "hairStyle": "long" } },
+    { "id": "backlog-bob",    "name": "Backlog Bob",    "placeholder": { "skin": "#d5a07a", "hair": "#5a3318", "eyes": "#3a2510", "mouth": "#a23548", "beard": "#3a1f10", "hairStyle": "bald" } },
+    { "id": "sprint-demon",   "name": "Sprint Demon",   "placeholder": { "skin": "#e8a878", "hair": "#aa3322", "eyes": "#3a5a30", "mouth": "#882233", "beard": "#882200", "hairStyle": "fluffy" } }
   ]
 }
